@@ -22,7 +22,7 @@ public class Items {
         Map<RegistryKey<ItemGroup>, List<Pair<Item, Item>>> itemMap = new HashMap<>();
         for (Map.Entry<Identifier, Pair<RegistryKey<ItemGroup>, Item>> entry : FluidBuilder.BUCKET_GROUP_MAPPING.entrySet()) {
             CustomFluid fluid = FluidBuilder.FLUIDS.get(entry.getKey());
-            Item bucket = fluid.getBucketFactory().create(fluid, new FabricItemSettings().recipeRemainder(BUCKET).maxCount(1));
+            Item bucket = fluid.getBucketFactory().create(fluid, FluidBuilder.BUCKET_SETTINGS.get(entry.getKey()));
             fluid.setBucketItem(Registry.register(Registries.ITEM, entry.getKey().withSuffixedPath("_bucket"), bucket));
             Pair<Item, Item> pair = Pair.of(fluid.getBucketItem(), entry.getValue().getSecond());
             RegistryKey<ItemGroup> group = entry.getValue().getFirst();
@@ -32,14 +32,14 @@ public class Items {
                 itemMap.put(group, new ArrayList<>() {{ add(pair); }});
         }
 
-        for (Map.Entry<RegistryKey<ItemGroup>, List<Pair<Item, Item>>> items : itemMap.entrySet()) {
-            ItemGroupEvents.modifyEntriesEvent(items.getKey()).register(content -> {
-                for (Pair<Item, Item> pair : items.getValue())
-                    if (pair.getSecond() == null)
-                        content.add(pair.getFirst());
-                    else
-                        content.addAfter(pair.getSecond(), pair.getFirst());
-            });
-        }
+        for (Map.Entry<RegistryKey<ItemGroup>, List<Pair<Item, Item>>> items : itemMap.entrySet())
+            if (items.getKey() != null)
+                ItemGroupEvents.modifyEntriesEvent(items.getKey()).register(content -> {
+                    for (Pair<Item, Item> pair : items.getValue())
+                        if (pair.getSecond() == null)
+                            content.add(pair.getFirst());
+                        else
+                            content.addAfter(pair.getSecond(), pair.getFirst());
+                });
     }
 }

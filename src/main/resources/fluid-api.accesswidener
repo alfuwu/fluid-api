@@ -1,0 +1,8 @@
+accessWidener v2 named
+
+accessible field net/minecraft/client/render/Camera area Lnet/minecraft/world/BlockView;
+accessible field net/minecraft/client/render/Camera$Projection center Lnet/minecraft/util/math/Vec3d;
+accessible class net/minecraft/client/render/BackgroundRenderer$FogData
+
+mutable field net/minecraft/block/AbstractCauldronBlock behaviorMap Lnet/minecraft/block/cauldron/CauldronBehavior$CauldronBehaviorMap;
+accessible field net/minecraft/block/AbstractCauldronBlock behaviorMap Lnet/minecraft/block/cauldron/CauldronBehavior$CauldronBehaviorMap;

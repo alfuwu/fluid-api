@@ -5,13 +5,12 @@
 	"name": "Fluid API",
 	"description": "An API that simplifies the process of creating new fluids",
 	"authors": [
-		"alfre"
+		"alfuwu"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"sources": "https://github.com/alfuwu/fluid-api"
 	},
-	"license": "none",
+	"license": "MIT",
 	"icon": "assets/fluid-api/icon.png",
 	"environment": "*",
 	"accessWidener": "fluid-api.accesswidener",

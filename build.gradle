@@ -24,7 +24,7 @@ loom {
 		}
 	}
 
-	accessWidenerPath = file("src/client/resources/fluid-api.accesswidener")
+	accessWidenerPath = file("src/main/resources/fluid-api.accesswidener")
 }
 
 dependencies {

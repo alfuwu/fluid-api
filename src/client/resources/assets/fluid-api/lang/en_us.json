@@ -1,4 +1,4 @@
 {
-  "block.fluid-api.custom_fluid": "Liquid Sculk",
-  "item.fluid-api.custom_fluid_bucket": "Sculk Bucket"
+  "block.fluid-api.soup": "Soup",
+  "item.fluid-api.soup_bucket": "Soup Bucket"
 }

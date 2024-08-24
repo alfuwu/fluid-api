@@ -5,20 +5,25 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.BackgroundRenderer;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.CameraSubmersionType;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.fluid.FluidState;
+import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Mixin(BackgroundRenderer.class)
 public abstract class BackgroundRendererMixin {
@@ -51,13 +56,7 @@ public abstract class BackgroundRendererMixin {
             BackgroundRenderer.FogData fogData = new BackgroundRenderer.FogData(fogType);
             Entity entity = camera.getFocusedEntity();
             CustomFluid.FogData fog = getSubmergedFluid(camera).getFog();
-            Pair<Float, Float> pair;
-            if (entity.isSpectator())
-                pair = fog.getSpectatorFog(viewDistance);
-            else if (entity instanceof LivingEntity living && living.hasStatusEffect(StatusEffects.NIGHT_VISION))
-                pair = fog.getNightVisionFog(viewDistance);
-            else
-                pair = fog.getFog(viewDistance);
+            Pair<Float, Float> pair = fog.getFog(entity, viewDistance, entity instanceof ClientPlayerEntity clientPlayer ? clientPlayer.getUnderwaterVisibility() : -1);
             fogData.fogStart = pair.getFirst();
             fogData.fogEnd = pair.getSecond();
             RenderSystem.setShaderFogStart(fogData.fogStart);
@@ -70,7 +69,24 @@ public abstract class BackgroundRendererMixin {
     private static boolean isSubmergedInFluid(Camera camera) {
         if (camera.isReady()) {
             FluidState fluidState = camera.area.getFluidState(camera.getBlockPos());
-            return fluidState.getFluid() instanceof CustomFluid && camera.getPos().y < camera.getBlockPos().getY() + fluidState.getHeight(camera.area, camera.getBlockPos());
+            if (fluidState.getFluid() instanceof CustomFluid fluid) {
+                if (FluidTags.WATER.equals(fluid.getTag())) {
+                    return camera.getPos().y < camera.getBlockPos().getY() + fluidState.getHeight(camera.area, camera.getBlockPos());
+                } else {
+                    // why
+                    Camera.Projection projection = camera.getProjection();
+                    List<Vec3d> list = Arrays.asList(projection.center, projection.getBottomRight(), projection.getTopRight(), projection.getBottomLeft(), projection.getTopLeft());
+
+                    for (Vec3d vec3d : list) {
+                        Vec3d vec3d2 = camera.getPos().add(vec3d);
+                        BlockPos blockPos = BlockPos.ofFloored(vec3d2);
+                        FluidState fluidState2 = camera.area.getFluidState(blockPos);
+                        if (fluidState2.getFluid() instanceof CustomFluid)
+                            if (vec3d2.y <= (double) (fluidState2.getHeight(camera.area, blockPos) + (float) blockPos.getY()))
+                                return true;
+                    }
+                }
+            }
         }
         return false;
     }

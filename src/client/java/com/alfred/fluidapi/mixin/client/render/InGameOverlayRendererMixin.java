@@ -52,12 +52,6 @@ public class InGameOverlayRendererMixin {
         float f = LightmapTextureManager.getBrightness(client.player.getWorld().getDimension(), client.player.getWorld().getLightLevel(blockPos));
         RenderSystem.enableBlend();
         RenderSystem.setShaderColor(f, f, f, 0.1F);
-        float g = 4.0F;
-        float h = -1.0F;
-        float i = 1.0F;
-        float j = -1.0F;
-        float k = 1.0F;
-        float l = -0.5F;
         float m = -client.player.getYaw() / 64.0F;
         float n = client.player.getPitch() / 64.0F;
         Matrix4f matrix4f = matrices.peek().getPositionMatrix();

@@ -3,18 +3,20 @@ package com.alfred.fluidapi;
 import com.alfred.fluidapi.registry.Blocks;
 import com.alfred.fluidapi.registry.FluidBuilder;
 import com.mojang.datafixers.util.Pair;
-import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.FluidBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.render.CameraSubmersionType;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.FlowableFluid;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.item.Item;
-import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.tag.BiomeTags;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.StateManager;
@@ -22,50 +24,54 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import net.minecraft.world.WorldView;
+import net.minecraft.world.biome.Biome;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
-import java.util.function.Function;
-
-import static net.minecraft.item.Items.BUCKET;
 
 // what is this monstrosity
 public class CustomFluid extends FlowableFluid {
-    private static final Item.Settings DEFAULT_SETTINGS = new FabricItemSettings().recipeRemainder(BUCKET).maxCount(1);
     protected FlowableFluid flowing;
     protected final CameraSubmersionType submersionType;
     protected final FogData fog;
     protected final Identifier submergedTexture;
     protected Item bucket;
     protected final FluidBuilder.BucketFactory<Item> bucketFactory;
-    protected final boolean infinite;
+    protected final boolean infinite; // broken when true (??? visible confusion)
     protected final int flowSpeed;
     protected final int levelDecreasePerBlock;
     protected final int tickRate;
     protected final float blastResistance;
-    protected final int tintColor = 0xFFFFFF;
+    protected final int tintColor;
+    protected final TagKey<Fluid> tag;
+    protected final Vec3d velocityMultiplier;
 
-    protected CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, CameraSubmersionType submersionType, FogData fog) {
+    protected CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings) {
         this.bucket = null;
         this.bucketFactory = bucketFactory;
         this.submersionType = submersionType;
         this.fog = fog;
-        // make fluid settings class allow customization for this
-        this.submergedTexture = FluidApi.identifier("textures/misc/in_fluid.png");
-        this.infinite = true;
-        this.flowSpeed = 4;
-        this.levelDecreasePerBlock = 1;
-        this.tickRate = 15;
-        this.blastResistance = 100f;
+
+        this.submergedTexture = settings.getSubmergedTexture();
+        this.infinite = settings.isInfinite();
+        this.flowSpeed = settings.getFlowSpeed();
+        this.levelDecreasePerBlock = settings.getLevelDecreasePerBlock();
+        this.tickRate = settings.getTickRate();
+        this.blastResistance = settings.getBlastResistance();
+        this.tintColor = settings.getTintColor();
+        this.tag = settings.getTag();
+        this.velocityMultiplier = settings.getVelocityMultiplier();
         this.flowing = null;
     }
 
-    public CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.FluidFactory<?> flowingFactory) {
-        this(bucketFactory, submersionType, fog);
-        this.flowing = (FlowableFluid) flowingFactory.create(bucketFactory, this, submersionType, fog);
+    public CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings, FluidBuilder.FluidFactory<?> flowingFactory) {
+        this(bucketFactory, submersionType, fog, settings);
+        this.flowing = (FlowableFluid) flowingFactory.create(this, settings);
     }
 
     public FlowableFluid getStill() {
@@ -118,7 +124,7 @@ public class CustomFluid extends FlowableFluid {
 
     @Override
     protected boolean canBeReplacedWith(FluidState state, BlockView world, BlockPos pos, Fluid fluid, Direction direction) {
-        return direction == Direction.DOWN && !fluid.isIn(FluidTags.WATER);
+        return direction == Direction.DOWN && !fluid.isIn(this.getTag());
     }
 
     @Override
@@ -149,6 +155,24 @@ public class CustomFluid extends FlowableFluid {
         return true;
     }
 
+    public int getTintColor() {
+        return this.tintColor;
+    }
+
+    @Override
+    public boolean isIn(TagKey<Fluid> tag) {
+        return super.isIn(tag) || tag.equals(this.getTag());
+    }
+
+    @Nullable
+    public TagKey<Fluid> getTag() {
+        return this.tag;
+    }
+
+    public Vec3d getVelocityMultiplier() {
+        return this.velocityMultiplier;
+    }
+
     public CameraSubmersionType getSubmersionType() {
         return this.submersionType;
     }
@@ -174,50 +198,47 @@ public class CustomFluid extends FlowableFluid {
     }
 
     public static class FogData {
-        protected Function<Float, Pair<Float, Float>> spectatorFog = viewDistance -> Pair.of(-8.0f, viewDistance * 0.5f);
-        protected Function<Float, Pair<Float, Float>> nightVisionFog = viewDistance -> Pair.of(0.0f, 3.0f);
-        protected Function<Float, Pair<Float, Float>> defaultFog = viewDistance -> Pair.of(0.25f, 1.0f);
         public float r, g, b;
+        public Pair<Float, Float> viewDistance;
+        protected FogFactory factory;
 
         public FogData(float r, float g, float b) {
             this.r = r;
             this.g = g;
             this.b = b;
+            this.viewDistance = Pair.of(-8.0f, 96.0f);
+            this.factory = (fog, entity, viewDistance, underwaterVisibility) -> {
+                float fogStart = fog.viewDistance.getFirst();
+                float fogEnd = fog.viewDistance.getSecond();
+                if (entity instanceof PlayerEntity player) {
+                    fogEnd *= Math.max(0.25f, underwaterVisibility);
+                    RegistryEntry<Biome> registryEntry = player.getWorld().getBiome(player.getBlockPos());
+                    if (registryEntry.isIn(BiomeTags.HAS_CLOSER_WATER_FOG))
+                        fogEnd *= 0.85f;
+                }
+                return Pair.of(fogStart, fogEnd);
+            };
         }
 
-        public Pair<Float, Float> getSpectatorFog(float f) {
-            return this.spectatorFog.apply(f);
+        public Pair<Float, Float> getFog(Entity entity, float viewDistance, float underwaterVisibility) {
+            return this.factory.getFog(this, entity, viewDistance, underwaterVisibility);
         }
 
-        public Pair<Float, Float> getNightVisionFog(float f) {
-            return this.nightVisionFog.apply(f);
-        }
-
-        public Pair<Float, Float> getFog(float f) {
-            return this.defaultFog.apply(f);
-        }
-
-        public FogData setSpectatorFog(Function<Float, Pair<Float, Float>> func) {
-            this.spectatorFog = func;
+        public FogData setFog(FogFactory factory) {
+            this.factory = factory;
             return this;
         }
 
-        public FogData setNightVisionFog(Function<Float, Pair<Float, Float>> func) {
-            this.nightVisionFog = func;
-            return this;
-        }
-
-        public FogData setFog(Function<Float, Pair<Float, Float>> func) {
-            this.defaultFog = func;
-            return this;
+        public interface FogFactory {
+            Pair<Float, Float> getFog(FogData fog, Entity entity, float viewDistance, float underwaterVisibility);
         }
     }
 
     public static class Flowing extends CustomFluid {
         protected CustomFluid parent;
 
-        public Flowing(FluidBuilder.BucketFactory<Item> bucketFactory, CustomFluid parent, CameraSubmersionType submersionType, FogData fog) {
-            super(bucketFactory, submersionType, fog);
+        public Flowing(CustomFluid parent, FluidBuilder.Settings settings) {
+            super(parent.bucketFactory, parent.submersionType, parent.fog, settings);
             this.parent = parent;
         }
 
