@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "com.alfred.fluidapi.mixin.client",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "ClientPlayerEntityMixin",
+    "render.BackgroundRendererMixin",
+    "render.InGameOverlayRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+	}
+}

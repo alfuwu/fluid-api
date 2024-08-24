@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "fluid-api:item/custom_fluid_bucket"
+  }
+}

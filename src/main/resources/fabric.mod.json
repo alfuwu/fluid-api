@@ -1,0 +1,45 @@
+{
+	"schemaVersion": 1,
+	"id": "fluid-api",
+	"version": "${version}",
+	"name": "Fluid API",
+	"description": "An API that simplifies the process of creating new fluids",
+	"authors": [
+		"alfre"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "none",
+	"icon": "assets/fluid-api/icon.png",
+	"environment": "*",
+	"accessWidener": "fluid-api.accesswidener",
+	"entrypoints": {
+		"main": [
+			"com.alfred.fluidapi.FluidApi"
+		],
+		"client": [
+			"com.alfred.fluidapi.FluidApiClient"
+		]
+	},
+	"mixins": [
+		"fluid-api.mixins.json",
+		{
+			"config": "fluid-api.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"custom": {
+		"modmenu": {
+			"badges": [ "library" ],
+			"update_checker": true
+		}
+	},
+	"depends": {
+		"fabricloader": ">=0.15.0",
+		"minecraft": "~1.20.4",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}

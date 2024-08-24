@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "fluid-api:custom_fluid",
+    "fluid-api:flowing_custom_fluid"
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "textures": {
+    "particle": "fluid-api:block/custom_fluid_still"
+  }
+}
