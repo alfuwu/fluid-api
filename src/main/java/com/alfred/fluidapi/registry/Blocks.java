@@ -66,10 +66,11 @@ public class Blocks {
 			CauldronBehavior.CauldronBehaviorMap map = CauldronBehavior.createMap(entry.getKey().getPath());
 			CauldronBehavior.registerBucketBehavior(map.map());
 			CustomFluid fluid = FluidBuilder.FLUIDS.get(entry.getKey());
-			map.map().put(net.minecraft.item.Items.BUCKET, (state, world, pos, player, hand, stack) ->
-					CauldronBehavior.emptyCauldron(state, world, pos, player, hand, stack, new ItemStack(fluid.getBucketItem()), (statex) ->
-							statex.getBlock() instanceof FullCauldronBlock || statex.get(LeveledCauldronBlock.LEVEL) == 3, fluid.getBucketFillSound().isPresent() ? fluid.getBucketFillSound().get() : SoundEvents.ITEM_BUCKET_FILL)
-			);
+			if (fluid.getBucketItem() != null)
+				map.map().put(net.minecraft.item.Items.BUCKET, (state, world, pos, player, hand, stack) ->
+						CauldronBehavior.emptyCauldron(state, world, pos, player, hand, stack, new ItemStack(fluid.getBucketItem()), (statex) ->
+								statex.getBlock() instanceof FullCauldronBlock || statex.get(LeveledCauldronBlock.LEVEL) == 3, fluid.getBucketFillSound().isPresent() ? fluid.getBucketFillSound().get() : SoundEvents.ITEM_BUCKET_FILL)
+				);
 			entry.getValue().behaviorMap = map;
 		}
 
@@ -77,9 +78,10 @@ public class Blocks {
 			for (Map.Entry<Identifier, CustomFluid> entry1 : FluidBuilder.FLUIDS.entrySet()) {
 				if (CAULDRONS.containsKey(entry1.getKey())) {
 					CustomFluid fluid = entry1.getValue();
-					entry.getValue().map().put(fluid.getBucketItem(), (state, world, pos, player, hand, stack) ->
-							CauldronBehavior.fillCauldron(world, pos, player, hand, stack, CAULDRONS.get(entry1.getKey()).getDefaultState(), fluid.getBucketFillSound().isPresent() ? fluid.getBucketFillSound().get() : SoundEvents.ITEM_BUCKET_FILL)
-					);
+					if (fluid.getBucketItem() != null)
+						entry.getValue().map().put(fluid.getBucketItem(), (state, world, pos, player, hand, stack) ->
+								CauldronBehavior.fillCauldron(world, pos, player, hand, stack, CAULDRONS.get(entry1.getKey()).getDefaultState(), fluid.getBucketFillSound().isPresent() ? fluid.getBucketFillSound().get() : SoundEvents.ITEM_BUCKET_FILL)
+						);
 				}
 			}
 		}

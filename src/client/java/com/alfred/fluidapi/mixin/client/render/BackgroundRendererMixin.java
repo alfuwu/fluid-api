@@ -33,7 +33,7 @@ public abstract class BackgroundRendererMixin {
 
     @SuppressWarnings("unused")
     @ModifyExpressionValue(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;getSubmersionType()Lnet/minecraft/client/render/CameraSubmersionType;"))
-    private static CameraSubmersionType getSculkSubmersionType(CameraSubmersionType original, @Local Camera camera) {
+    private static CameraSubmersionType getFluidSubmersionType(CameraSubmersionType original, @Local Camera camera) {
         if (isSubmergedInFluid(camera))
             return getSubmergedFluid(camera).getSubmersionType();
         return original;

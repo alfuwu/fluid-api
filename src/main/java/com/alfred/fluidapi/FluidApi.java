@@ -33,6 +33,7 @@ public class FluidApi implements ModInitializer {
 			.blockSettings(FabricBlockSettings.create().luminance(5))
 			.cauldronSettings(FabricBlockSettings.copyShallow(CAULDRON).luminance(ignored -> 5))
 			.submersionType(CameraSubmersionType.LAVA)
+			.noBucket()
 			.build();
 
 	@Override
