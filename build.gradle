@@ -11,7 +11,8 @@ base {
 }
 
 repositories {
-	
+	mavenLocal()
+	mavenCentral()
 }
 
 loom {
@@ -46,6 +47,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
 	it.options.release = 17
 }
 
@@ -63,17 +65,12 @@ jar {
 	from("LICENSE") {
 		rename { "${it}_${project.base.archivesName.get()}"}
 	}
-	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-sourcesJar {
-	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 // configure the maven publication
 publishing {
 	publications {
-		mavenJava(MavenPublication) {
+		create("mavenJava", MavenPublication) {
 			from components.java
 		}
 	}
