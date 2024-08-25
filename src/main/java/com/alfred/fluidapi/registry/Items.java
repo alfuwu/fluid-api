@@ -34,7 +34,8 @@ public class Items {
         }
         FluidBuilder.BUCKET_SETTINGS.clear();
 
-        // nesting nightmare
+        // nvm i fixed the nesting nightmare
+        // i forgot to update the comment though
         List<Pair<Item, Integer>> bottles = new ArrayList<>();
         for (Pair<Identifier, Pair<Boolean, Boolean>> cauldron : FluidBuilder.CAULDRONS) {
             if (cauldron.getSecond().getSecond()) {
@@ -44,9 +45,9 @@ public class Items {
                 if (fluid.getBottleFactory() != null)
                     bottle = registerBottle(fluid.getBottleFactory(), fluid, cauldron.getFirst().withSuffixedPath("_bottle"), bottles, null, 0);
                 if (fluid.getSplashBottleFactory() != null)
-                    splashBottle = registerBottle(fluid.getSplashBottleFactory(), fluid, cauldron.getFirst().withSuffixedPath("_splash_bottle"), bottles, bottle, 1);
+                    splashBottle = registerBottle(fluid.getSplashBottleFactory(), fluid, cauldron.getFirst().withPrefixedPath("splash_").withSuffixedPath("_bottle"), bottles, bottle, 1);
                 if (fluid.getLingeringBottleFactory() != null)
-                    registerBottle(fluid.getLingeringBottleFactory(), fluid, cauldron.getFirst().withSuffixedPath("_lingering_bottle"), bottles, splashBottle, 2);
+                    registerBottle(fluid.getLingeringBottleFactory(), fluid, cauldron.getFirst().withPrefixedPath("lingering_").withSuffixedPath("_bottle"), bottles, splashBottle, 2);
             }
         }
         FluidBuilder.BOTTLE_SETTINGS.clear();

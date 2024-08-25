@@ -14,7 +14,6 @@ import net.minecraft.fluid.FlowableFluid;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.BiomeTags;
 import net.minecraft.registry.tag.TagKey;
@@ -34,6 +33,7 @@ import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 // what is this monstrosity
@@ -57,6 +57,11 @@ public class CustomFluid extends FlowableFluid {
     protected final TagKey<Fluid> tag;
     protected final Vec3d velocityMultiplier;
     protected final boolean drippable;
+    protected SoundEvent entitySwimSound, entitySplashSound, entityHighSpeedSplashSound;
+    protected SoundEvent playerSwimSound, playerSplashSound, playerHighSpeedSplashSound;
+    protected float splashSoundVolume, swimSoundVolume;
+    protected final boolean breathable;
+    protected final Consumer<Entity> entityTick;
 
     // too many arguments aaaaaaaaa
     protected CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, FluidBuilder.BottleFactory<Item> bottleFactory, FluidBuilder.BottleFactory<Item> splashBottleFactory, FluidBuilder.BottleFactory<Item> lingeringBottleFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings) {
@@ -79,6 +84,16 @@ public class CustomFluid extends FlowableFluid {
         this.tag = settings.getTag();
         this.velocityMultiplier = settings.getVelocityMultiplier();
         this.drippable = settings.isDrippable();
+        this.entitySwimSound = settings.getSwimSound();
+        this.entitySplashSound = settings.getSplashSound();
+        this.entityHighSpeedSplashSound = settings.getHighSpeedSplashSound();
+        this.playerSwimSound = settings.getPlayerSwimSound();
+        this.playerSplashSound = settings.getPlayerSplashSound();
+        this.playerHighSpeedSplashSound = settings.getPlayerHighSpeedSplashSound();
+        this.splashSoundVolume = settings.getSplashSoundVolume();
+        this.swimSoundVolume = settings.getSwimSoundVolume();
+        this.breathable = settings.isBreathable();
+        this.entityTick = settings.getEntityTick();
         this.flowing = null;
     }
 
@@ -208,6 +223,46 @@ public class CustomFluid extends FlowableFluid {
 
     public boolean isDrippable() {
         return this.drippable;
+    }
+
+    public boolean isBreathable() {
+        return this.breathable;
+    }
+
+    public SoundEvent getSwimSound() {
+        return this.entitySwimSound;
+    }
+
+    public SoundEvent getSplashSound() {
+        return this.entitySplashSound;
+    }
+
+    public SoundEvent getHighSpeedSplashSound() {
+        return this.entityHighSpeedSplashSound;
+    }
+
+    public SoundEvent getPlayerSwimSound() {
+        return this.playerSwimSound;
+    }
+
+    public SoundEvent getPlayerSplashSound() {
+        return this.playerSplashSound;
+    }
+
+    public SoundEvent getPlayerHighSpeedSplashSound() {
+        return this.playerHighSpeedSplashSound;
+    }
+
+    public float getSplashSoundVolume() {
+        return this.splashSoundVolume;
+    }
+
+    public float getSwimSoundVolume() {
+        return this.swimSoundVolume;
+    }
+
+    public Consumer<Entity> getEntityTick() {
+        return this.entityTick;
     }
 
     public CameraSubmersionType getSubmersionType() {

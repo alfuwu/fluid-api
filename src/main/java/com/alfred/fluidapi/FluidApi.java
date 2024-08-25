@@ -6,6 +6,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.minecraft.client.render.CameraSubmersionType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.Identifier;
@@ -36,8 +37,13 @@ public class FluidApi implements ModInitializer {
 			.submersionType(CameraSubmersionType.LAVA) // doesn't really do much
 			.bottle() // adds bottles and makes the cauldron a leveled cauldron (like that of the water cauldron)
 			.customLingeringBottleItem(null) // removes the lingering bottle variant
+			.entityTick(entity -> {
+				if (entity instanceof LivingEntity living)
+					living.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 200, 3)); // gives living entities the nausea IV status effect while touching soup, and then for 10 seconds afterwards
+			})
 			.build(); // creates the fluid
-	 */
+	*/
+
 
 	@Override
 	public void onInitialize() {

@@ -4,7 +4,11 @@ import com.alfred.fluidapi.CustomFluid;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
+import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
+import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
@@ -15,6 +19,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntity.class)
@@ -30,8 +35,14 @@ public abstract class LivingEntityMixin extends Entity {
     @Inject(method = "travel", at = @At("RETURN"))
     private void modifySwimSpeed(Vec3d movementInput, CallbackInfo ci) {
         FluidState fluidState = this.getWorld().getFluidState(this.getBlockPos());
-        if (this.isInLiquid() && this.shouldSwimInFluids() && !this.canWalkOnFluid(fluidState) && fluidState.getFluid() instanceof CustomFluid fluid)
-            this.setVelocity(this.getVelocity().multiply(fluid.getVelocityMultiplier().x, fluid.getVelocityMultiplier().y, fluid.getVelocityMultiplier().z));
+        if (this.isInLiquid() && this.shouldSwimInFluids() && !this.canWalkOnFluid(fluidState) && fluidState.getFluid() instanceof CustomFluid fluid && fluid.getVelocityMultiplier() != null)
+            this.setVelocity(this.getVelocity().multiply(fluid.getVelocityMultiplier()));
+    }
+
+    @Redirect(method = "baseTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;isSubmergedIn(Lnet/minecraft/registry/tag/TagKey;)Z"))
+    private boolean isSubmergedInUnbreathableFluid(LivingEntity instance, TagKey<Fluid> tagKey) {
+        Fluid submerged = getSubmergedFluid();
+        return submerged instanceof CustomFluid fluid ? !fluid.isBreathable() : instance.isSubmergedIn(tagKey);
     }
 
     @Unique
@@ -60,5 +71,20 @@ public abstract class LivingEntityMixin extends Entity {
             }
         }
         return false;
+    }
+
+    @Unique
+    private Fluid getSubmergedFluid() {
+        double d = this.getEyeY() - 0.1111111119389534;
+        Entity entity = this.getVehicle();
+        if (entity instanceof BoatEntity boatEntity && !boatEntity.isSubmergedInWater() && boatEntity.getBoundingBox().maxY >= d && boatEntity.getBoundingBox().minY <= d)
+            return null;
+
+        BlockPos blockPos = BlockPos.ofFloored(this.getX(), d, this.getZ());
+        FluidState fluidState = this.getWorld().getFluidState(blockPos);
+        double e = blockPos.getY() + fluidState.getHeight(this.getWorld(), blockPos);
+        if (e > d)
+            return fluidState.getFluid();
+        return null;
     }
 }

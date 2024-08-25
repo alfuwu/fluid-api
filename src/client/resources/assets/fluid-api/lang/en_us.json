@@ -1,5 +1,7 @@
 {
   "block.fluid-api.soup": "Soup",
   "item.fluid-api.soup_bucket": "Soup Bucket",
-  "item.fluid-api.soup_bottle.effect.empty": "Bottle of Soup"
+  "item.fluid-api.soup_bottle": "Bottle of Soup",
+  "item.fluid-api.splash_soup_bottle": "Splash Bottle of Soup",
+  "item.fluid-api.lingering_soup_bottle": "Lingering Bottle of Soup"
 }

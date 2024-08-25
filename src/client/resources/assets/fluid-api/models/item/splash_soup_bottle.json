@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fluid-api:item/soup_lingering_bottle"
+    "layer0": "fluid-api:item/splash_soup_bottle"
   }
 }

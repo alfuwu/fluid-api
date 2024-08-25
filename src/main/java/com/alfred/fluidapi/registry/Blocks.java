@@ -19,6 +19,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.stat.Stats;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.event.GameEvent;
 
 import java.util.ArrayList;
@@ -58,9 +59,9 @@ public class Blocks {
 			AbstractCauldronBlock block;
 			CustomFluid fluid = FluidBuilder.FLUIDS.getOrDefault(id, null);
 			if (bl2)
-				block = new LeveledCauldronBlock(FluidBuilder.CAULDRON_SETTINGS.get(id), FluidBuilder.FLUIDS.get(id), bl);
+				block = new LeveledCauldronBlock(FluidBuilder.CAULDRON_SETTINGS.get(id), fluid, bl);
 			else
-				block = new FullCauldronBlock(FluidBuilder.CAULDRON_SETTINGS.get(id), bl);
+				block = new FullCauldronBlock(FluidBuilder.CAULDRON_SETTINGS.get(id), fluid != null && fluid.getEntityTick() != null ? fluid.getEntityTick() : entity -> {}, bl);
 			Registry.register(Registries.BLOCK, id.withSuffixedPath("_cauldron"), block);
 			if (fluid != null && fluid.getTintColor() > -1 && fluid.getTintColor() < 0xFFFFFF)
 				TINTED_BLOCKS.add(Pair.of(block, fluid.getTintColor()));

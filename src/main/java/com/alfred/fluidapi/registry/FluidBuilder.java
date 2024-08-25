@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.client.render.CameraSubmersionType;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.fluid.FlowableFluid;
@@ -21,6 +22,8 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.sound.BlockSoundGroup;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -31,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static net.minecraft.block.Blocks.CAULDRON;
@@ -189,7 +193,7 @@ public class FluidBuilder {
     public FluidBuilder submersionType(CameraSubmersionType type) {
         this.submersionType = type;
         return this;
-    }
+    } // crash: changing submersionType to CameraSubmersionType.POWDERED_SNOW causes the game to crash during initialization
 
     /**
      * @param group The creative inventory tab where the fluid's custom bucket item will appear in
@@ -447,6 +451,56 @@ public class FluidBuilder {
         return this;
     }
 
+    public FluidBuilder swimSound(SoundEvent sound) {
+        this.settings.swimSound(sound);
+        return this;
+    }
+
+    public FluidBuilder playerSwimSound(SoundEvent sound) {
+        this.settings.playerSwimSound(sound);
+        return this;
+    }
+
+    public FluidBuilder splashSound(SoundEvent sound) {
+        this.settings.splashSound(sound);
+        return this;
+    }
+
+    public FluidBuilder playerSplashSound(SoundEvent sound) {
+        this.settings.playerSplashSound(sound);
+        return this;
+    }
+
+    public FluidBuilder highSpeedSplashSound(SoundEvent sound) {
+        this.settings.highSpeedSplashSound(sound);
+        return this;
+    }
+
+    public FluidBuilder playerHighSpeedSplashSound(SoundEvent sound) {
+        this.settings.playerHighSpeedSplashSound(sound);
+        return this;
+    }
+
+    public FluidBuilder splashSoundVolume(float volume) {
+        this.settings.splashSoundVolume(volume);
+        return this;
+    }
+
+    public FluidBuilder swimSoundVolume(float volume) {
+        this.settings.swimSoundVolume(volume);
+        return this;
+    }
+
+    public FluidBuilder breathable() {
+        this.settings.breathable();
+        return this;
+    }
+
+    public FluidBuilder entityTick(Consumer<Entity> func) {
+        this.settings.entityTick(func);
+        return this;
+    }
+
     /**
      * @param settings The block settings for the custom fluid
      * @return this
@@ -509,9 +563,9 @@ public class FluidBuilder {
             CAULDRONS.add(Pair.of(this.id, Pair.of(this.cauldronBurns, this.createBottle)));
             CAULDRON_SETTINGS.put(this.id, this.cauldronSettings);
         }
-        if (this.createBottle) {
-            //BOTTLE_SETTINGS.put(this.id, this.bottleSettings);
-        }
+        //if (this.createBottle) {
+        //    BOTTLE_SETTINGS.put(this.id, this.bottleSettings);
+        //}
         FLUIDS.put(this.id, fluid);
         FLUID_SETTINGS.put(this.id, this.fluidSettings);
         return fluid;
@@ -547,6 +601,11 @@ public class FluidBuilder {
         TagKey<Fluid> tag;
         Vec3d velocityMultiplier;
         boolean drippable;
+        SoundEvent entitySwimSound, entitySplashSound, entityHighSpeedSplashSound;
+        SoundEvent playerSwimSound, playerSplashSound, playerHighSpeedSplashSound;
+        float splashSoundVolume, swimSoundVolume;
+        boolean breathable;
+        Consumer<Entity> entityTick;
 
         public Settings() {
             this.submergedTexture = new Identifier("textures/misc/underwater");
@@ -559,6 +618,16 @@ public class FluidBuilder {
             this.tag = FluidTags.WATER;
             this.velocityMultiplier = new Vec3d(1, 1, 1);
             this.drippable = true;
+            this.entitySwimSound = SoundEvents.ENTITY_GENERIC_SWIM;
+            this.entitySplashSound = SoundEvents.ENTITY_GENERIC_SPLASH;
+            this.entityHighSpeedSplashSound = SoundEvents.ENTITY_GENERIC_SPLASH;
+            this.playerSwimSound = SoundEvents.ENTITY_PLAYER_SWIM;
+            this.playerSplashSound = SoundEvents.ENTITY_PLAYER_SPLASH;
+            this.playerHighSpeedSplashSound = SoundEvents.ENTITY_PLAYER_SPLASH_HIGH_SPEED;
+            this.splashSoundVolume = 1f;
+            this.swimSoundVolume = 1f;
+            this.breathable = false;
+            this.entityTick = entity -> {};
         }
 
         protected Settings submergedTexture(Identifier path) {
@@ -636,6 +705,56 @@ public class FluidBuilder {
             return this;
         }
 
+        public Settings swimSound(SoundEvent sound) {
+            this.entitySwimSound = sound;
+            return this;
+        }
+
+        public Settings playerSwimSound(SoundEvent sound) {
+            this.playerSwimSound = sound;
+            return this;
+        }
+
+        public Settings splashSound(SoundEvent sound) {
+            this.entitySplashSound = sound;
+            return this;
+        }
+
+        public Settings playerSplashSound(SoundEvent sound) {
+            this.playerSplashSound = sound;
+            return this;
+        }
+
+        public Settings highSpeedSplashSound(SoundEvent sound) {
+            this.entityHighSpeedSplashSound = sound;
+            return this;
+        }
+
+        public Settings playerHighSpeedSplashSound(SoundEvent sound) {
+            this.playerHighSpeedSplashSound = sound;
+            return this;
+        }
+
+        public Settings splashSoundVolume(float volume) {
+            this.splashSoundVolume = volume;
+            return this;
+        }
+
+        public Settings swimSoundVolume(float volume) {
+            this.swimSoundVolume = volume;
+            return this;
+        }
+
+        public Settings breathable() {
+            this.breathable = true;
+            return this;
+        }
+
+        public Settings entityTick(Consumer<Entity> func) {
+            this.entityTick = func;
+            return this;
+        }
+
         public Identifier getSubmergedTexture() {
             return this.submergedTexture;
         }
@@ -674,6 +793,46 @@ public class FluidBuilder {
 
         public boolean isDrippable() {
             return this.drippable;
+        }
+
+        public SoundEvent getSwimSound() {
+            return this.entitySwimSound;
+        }
+
+        public SoundEvent getSplashSound() {
+            return this.entitySplashSound;
+        }
+
+        public SoundEvent getHighSpeedSplashSound() {
+            return this.entityHighSpeedSplashSound;
+        }
+
+        public SoundEvent getPlayerSwimSound() {
+            return this.playerSwimSound;
+        }
+
+        public SoundEvent getPlayerSplashSound() {
+            return this.playerSplashSound;
+        }
+
+        public SoundEvent getPlayerHighSpeedSplashSound() {
+            return this.playerHighSpeedSplashSound;
+        }
+
+        public float getSplashSoundVolume() {
+            return splashSoundVolume;
+        }
+
+        public float getSwimSoundVolume() {
+            return swimSoundVolume;
+        }
+
+        public boolean isBreathable() {
+            return this.breathable;
+        }
+
+        public Consumer<Entity> getEntityTick() {
+            return this.entityTick;
         }
     }
 }

@@ -6,9 +6,11 @@
     "BrewingStandScreenHandlerMixin",
     "BucketItemMixin",
     "CauldronBlockMixin",
+    "EntityMixin",
     "FluidStateMixin",
     "GlassBottleItemMixin",
     "LivingEntityMixin",
+    "PlayerEntityMixin",
     "PointedDripstoneBlockMixin",
     "PotionUtilMixin"
   ],

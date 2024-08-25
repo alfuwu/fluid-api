@@ -51,14 +51,12 @@ public class LeveledCauldronBlock extends AbstractCauldronBlock {
     }
 
     public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity) {
-        //if (!world.isClient && entity.isOnFire() && this.isEntityTouchingFluid(state, pos, entity)) {
-        //    entity.extinguish();
-        //    if (entity.canModifyAt(world, pos))
-        //        this.onFireCollision(state, world, pos);
-        //}
-        // implement customization of what happens when an entity enters the cauldron?
-        if (this.burnsEntities && this.isEntityTouchingFluid(state, pos, entity) && state.get(LEVEL) >= MIN_LEVEL)
-            entity.setOnFireFromLava();
+        if (this.isEntityTouchingFluid(state, pos, entity) && state.get(LEVEL) >= MIN_LEVEL) {
+            if (this.burnsEntities)
+                entity.setOnFireFromLava();
+            if (this.fluid != null && this.fluid.getEntityTick() != null)
+                this.fluid.getEntityTick().accept(entity);
+        }
     }
 
     private void onFireCollision(BlockState state, World world, BlockPos pos) {
