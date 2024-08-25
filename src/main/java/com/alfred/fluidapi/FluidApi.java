@@ -13,15 +13,16 @@ import net.minecraft.util.Identifier;
 import static net.minecraft.block.Blocks.CAULDRON;
 
 public class FluidApi implements ModInitializer {
+	/* Test fluid
 	public static CustomFluid SOUP = FluidBuilder.create(FluidApi.identifier("soup"))
-			.fogColor(0x762B1C)
-			.tintColor(0xFF5533)
-			.tag(FluidTags.LAVA)
-			.submergedTexture(identifier("textures/misc/in_fluid.png"))
-			.blastResistance(2f)
-			.flowSpeed(1)
-			.tickRate(1)
-			.velocityMultiplier(0.5, 0.5, 0.5)
+			.fogColor(0x762B1C) // makes the fog a dark reddish color
+			.tintColor(0xFF5533) // makes the fluid a red color
+			.tag(FluidTags.LAVA) // makes entities burn in the fluid and makes the fluid act as lava does for most things
+			.submergedTexture(identifier("textures/misc/in_fluid.png")) // the texture that will render on screen when a player is submerged within the fluid
+			.blastResistance(2f) // makes soup provide very little resistance against explosions
+			.flowSpeed(1) // makes the liquid move every tick
+			.tickRate(1) // increases tick rate to the maximum possible
+			.velocityMultiplier(0.5, 0.5, 0.5) // halves the velocity of all living entities moving through the fluid
 			.fogFactory(((fog, entity, viewDistance, underwaterVisibility) -> { // you can call .lavaFog() to achieve the same effect as this
 				if (entity.isSpectator())
 					return Pair.of(-8.0f, viewDistance * 0.5f);
@@ -29,19 +30,20 @@ public class FluidApi implements ModInitializer {
 					return Pair.of(0.0f, 3.0f);
 				else
 					return Pair.of(0.25f, 1.0f);
-			}))
-			.blockSettings(FabricBlockSettings.create().luminance(5))
-			.cauldronSettings(FabricBlockSettings.copyShallow(CAULDRON).luminance(ignored -> 5))
-			.submersionType(CameraSubmersionType.LAVA)
-			.noBucket()
-			.build();
+			})) // makes the fog that appears while submerged act exactly how the fog of lava does
+			.blockSettings(FabricBlockSettings.create().luminance(5)) // makes the fluid slightly emissive
+			.cauldronSettings(FabricBlockSettings.copyShallow(CAULDRON).luminance(ignored -> 5)) // makes the cauldron also slightly emissive
+			.submersionType(CameraSubmersionType.LAVA) // doesn't really do much
+			.bottle() // adds bottles and makes the cauldron a leveled cauldron (like that of the water cauldron)
+			.customLingeringBottleItem(null) // removes the lingering bottle variant
+			.build(); // creates the fluid
+	 */
 
 	@Override
 	public void onInitialize() {
 		Blocks.register();
 		Items.register();
 		Blocks.registerCauldrons();
-		// god this is so scuffed
 	}
 	
 	public static Identifier identifier(String path) {

@@ -2,7 +2,15 @@ accessWidener v2 named
 
 accessible field net/minecraft/client/render/Camera area Lnet/minecraft/world/BlockView;
 accessible field net/minecraft/client/render/Camera$Projection center Lnet/minecraft/util/math/Vec3d;
-accessible class net/minecraft/client/render/BackgroundRenderer$FogData
 
 mutable field net/minecraft/block/AbstractCauldronBlock behaviorMap Lnet/minecraft/block/cauldron/CauldronBehavior$CauldronBehaviorMap;
 accessible field net/minecraft/block/AbstractCauldronBlock behaviorMap Lnet/minecraft/block/cauldron/CauldronBehavior$CauldronBehaviorMap;
+accessible field net/minecraft/block/PointedDripstoneBlock$DrippingFluid pos Lnet/minecraft/util/math/BlockPos;
+accessible field net/minecraft/block/PointedDripstoneBlock$DrippingFluid fluid Lnet/minecraft/fluid/Fluid;
+accessible field net/minecraft/block/PointedDripstoneBlock$DrippingFluid sourceState Lnet/minecraft/block/BlockState;
+
+accessible method net/minecraft/block/CauldronBlock canFillWithPrecipitation (Lnet/minecraft/world/World;Lnet/minecraft/world/biome/Biome$Precipitation;)Z
+accessible method net/minecraft/block/PointedDripstoneBlock$DrippingFluid <init> (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/fluid/Fluid;Lnet/minecraft/block/BlockState;)V
+
+accessible class net/minecraft/client/render/BackgroundRenderer$FogData
+accessible class net/minecraft/block/PointedDripstoneBlock$DrippingFluid

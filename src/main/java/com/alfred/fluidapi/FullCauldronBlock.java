@@ -11,10 +11,11 @@ import net.minecraft.world.World;
 public class FullCauldronBlock extends AbstractCauldronBlock {
     public static final MapCodec<FullCauldronBlock> CODEC = createCodec(settings -> new FullCauldronBlock(settings, false));
 
+    protected boolean burnsEntities;
+
     public MapCodec<FullCauldronBlock> getCodec() {
         return CODEC;
     }
-    protected boolean burnsEntities;
 
     public FullCauldronBlock(AbstractBlock.Settings settings, boolean burnsEntities) {
         super(settings, null);

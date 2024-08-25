@@ -1,6 +1,9 @@
 package com.alfred.fluidapi.registry;
 
 import com.alfred.fluidapi.CustomFluid;
+import com.alfred.fluidapi.bottles.FluidLingeringPotionItem;
+import com.alfred.fluidapi.bottles.FluidPotionItem;
+import com.alfred.fluidapi.bottles.FluidSplashPotionItem;
 import com.mojang.datafixers.util.Pair;
 import io.netty.util.internal.UnstableApi;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
@@ -20,25 +23,31 @@ import net.minecraft.registry.tag.TagKey;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldView;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static net.minecraft.block.Blocks.CAULDRON;
 import static net.minecraft.item.Items.BUCKET;
+import static net.minecraft.item.Items.GLASS_BOTTLE;
 
 @SuppressWarnings("unused")
 public class FluidBuilder {
     private static final AbstractBlock.Settings DEFAULT_FLUID_SETTINGS = FabricBlockSettings.create().replaceable().noCollision().strength(100.0f).pistonBehavior(PistonBehavior.DESTROY).dropsNothing().liquid().sounds(BlockSoundGroup.INTENTIONALLY_EMPTY);
     private static final Item.Settings DEFAULT_BUCKET_SETTINGS = new FabricItemSettings().recipeRemainder(BUCKET).maxCount(1);
     private static final AbstractBlock.Settings DEFAULT_CAULDRON_SETTINGS = FabricBlockSettings.copyShallow(CAULDRON);
+    private static final Item.Settings DEFAULT_BOTTLE_SETTINGS = new FabricItemSettings().recipeRemainder(GLASS_BOTTLE).maxCount(1);
     public static final Map<Identifier, CustomFluid> FLUIDS = new HashMap<>();
     public static final Map<Identifier, AbstractBlock.Settings> FLUID_SETTINGS = new HashMap<>();
     public static final Map<Identifier, Item.Settings> BUCKET_SETTINGS = new HashMap<>();
     public static final Map<Identifier, AbstractBlock.Settings> CAULDRON_SETTINGS = new HashMap<>();
+    public static final Map<Identifier, Item.Settings> BOTTLE_SETTINGS = new HashMap<>();
     public static final Map<Identifier, Pair<RegistryKey<ItemGroup>, Item>> BUCKET_GROUP_MAPPING = new HashMap<>();
     public static final List<Pair<Identifier, Pair<Boolean, Boolean>>> CAULDRONS = new ArrayList<>();
 
@@ -46,21 +55,22 @@ public class FluidBuilder {
     protected CustomFluid.FogData fog;
     protected CameraSubmersionType submersionType;
     protected RegistryKey<ItemGroup> bucketItemGroup;
-    protected RegistryKey<ItemGroup> bottleItemGroup;
     protected Item bucketAfter;
-    protected Item bottleAfter;
     protected CustomFluidFactory<?> factory;
     protected FluidFactory<?> flowingFactory;
     protected BucketFactory<Item> bucketFactory;
     protected BottleFactory<Item> bottleFactory;
+    protected BottleFactory<Item> splashBottleFactory;
+    protected BottleFactory<Item> lingeringBottleFactory;
     protected Settings settings;
     protected AbstractBlock.Settings fluidSettings;
     protected Item.Settings bucketSettings;
     protected AbstractBlock.Settings cauldronSettings;
+    protected Item.Settings bottleSettings;
     protected boolean createBucket;
     protected boolean createCauldron;
     protected boolean cauldronBurns;
-    protected boolean createBottleOfFluid;
+    protected boolean createBottle;
 
     private FluidBuilder(Identifier id) {
         this.id = id;
@@ -72,19 +82,21 @@ public class FluidBuilder {
         builder.submersionType = CameraSubmersionType.WATER;
         builder.bucketItemGroup = ItemGroups.TOOLS;
         builder.bucketAfter = Items.MILK_BUCKET;
-        //builder.bottleAfter = Items.GLASS_BOTTLE;
         builder.bucketFactory = BucketItem::new;
-        //builder.bottleFactory = GlassBottleItem::new;
+        builder.bottleFactory = FluidPotionItem::new;
+        builder.splashBottleFactory = FluidSplashPotionItem::new;
+        builder.lingeringBottleFactory = FluidLingeringPotionItem::new;
         builder.factory = CustomFluid::new;
         builder.flowingFactory = CustomFluid.Flowing::new;
         builder.settings = new FluidBuilder.Settings();
         builder.fluidSettings = DEFAULT_FLUID_SETTINGS;
         builder.bucketSettings = DEFAULT_BUCKET_SETTINGS;
         builder.cauldronSettings = DEFAULT_CAULDRON_SETTINGS;
+        builder.bottleSettings = DEFAULT_BOTTLE_SETTINGS;
         builder.createBucket = true;
         builder.createCauldron = true;
         builder.cauldronBurns = false;
-        builder.createBottleOfFluid = false;
+        builder.createBottle = false;
         return builder;
     }
 
@@ -111,7 +123,7 @@ public class FluidBuilder {
     }
 
     /**
-     * @param color A 6 digit hex value that will be interpreted as a color and used to tint the submerged overlay
+     * @param color A six digit hex value that will be interpreted as a color and used to tint the submerged overlay
      * @return this
      */
     public FluidBuilder fogColor(int color) {
@@ -183,7 +195,7 @@ public class FluidBuilder {
      * @param group The creative inventory tab where the fluid's custom bucket item will appear in
      * @return this
      */
-    public FluidBuilder itemGroup(RegistryKey<ItemGroup> group) {
+    public FluidBuilder itemGroup(@Nullable RegistryKey<ItemGroup> group) {
         this.bucketItemGroup = group;
         return this;
     }
@@ -224,6 +236,36 @@ public class FluidBuilder {
         return this;
     }
 
+
+    /**
+     * @param factory The factory that will be used to create the fluid's custom bottle item
+     * @return this
+     */
+    public FluidBuilder customBottleItem(@Nullable BottleFactory<Item> factory) {
+        this.bottleFactory = factory;
+        return this;
+    }
+
+
+    /**
+     * @param factory The factory that will be used to create the fluid's custom splash bottle item
+     * @return this
+     */
+    public FluidBuilder customSplashBottleItem(@Nullable BottleFactory<Item> factory) {
+        this.splashBottleFactory = factory;
+        return this;
+    }
+
+
+    /**
+     * @param factory The factory that will be used to create the fluid's custom lingering bottle item
+     * @return this
+     */
+    public FluidBuilder customLingeringBottleItem(@Nullable BottleFactory<Item> factory) {
+        this.lingeringBottleFactory = factory;
+        return this;
+    }
+
     /**
      * Prevents the API from automatically creating a bucket for the custom fluid
      * @return this
@@ -239,6 +281,16 @@ public class FluidBuilder {
      */
     public FluidBuilder noCauldron() {
         this.createCauldron = false;
+        return this;
+    }
+
+    /**
+     * Registers a bottle for the custom fluid<br>
+     * Also makes the cauldron a LeveledCauldronBlock instead of a FullCauldronBlock
+     * @return this
+     */
+    public FluidBuilder bottle() {
+        this.createBottle = true;
         return this;
     }
 
@@ -272,10 +324,29 @@ public class FluidBuilder {
     }
 
     /**
+     * @param infinite A function that provides a boolean when given a World object
+     * @return this
+     */
+    @UnstableApi
+    public FluidBuilder infinite(Function<World, Boolean> infinite) {
+        this.settings.infinite(infinite);
+        return this;
+    }
+
+    /**
      * @param flowSpeed How many ticks it takes for the liquid to flow one block
      * @return this
      */
     public FluidBuilder flowSpeed(int flowSpeed) {
+        this.settings.flowSpeed(flowSpeed);
+        return this;
+    }
+
+    /**
+     * @param flowSpeed A function that provides an integer when given a WorldView object
+     * @return this
+     */
+    public FluidBuilder flowSpeed(Function<WorldView, Integer> flowSpeed) {
         this.settings.flowSpeed(flowSpeed);
         return this;
     }
@@ -290,10 +361,28 @@ public class FluidBuilder {
     }
 
     /**
+     * @param levelDecreasePerBlock A function that provides an integer when given a WorldView object
+     * @return this
+     */
+    public FluidBuilder levelDecreasePerBlock(Function<WorldView, Integer> levelDecreasePerBlock) {
+        this.settings.levelDecreasePerBlock(levelDecreasePerBlock);
+        return this;
+    }
+
+    /**
      * @param tickRate Determines how fast the fluid ticks
      * @return this
      */
     public FluidBuilder tickRate(int tickRate) {
+        this.settings.tickRate(tickRate);
+        return this;
+    }
+
+    /**
+     * @param tickRate A function that provides an integer when given a WorldView object
+     * @return this
+     */
+    public FluidBuilder tickRate(Function<WorldView, Integer> tickRate) {
         this.settings.tickRate(tickRate);
         return this;
     }
@@ -328,6 +417,7 @@ public class FluidBuilder {
     }
 
     /**
+     * Values greater than 1 not recommended
      * @param movementSpeed A Vec3d that multiplies any entity within the custom fluid's speed
      * @return this
      */
@@ -337,6 +427,7 @@ public class FluidBuilder {
     }
 
     /**
+     * Values greater than 1 not recommended
      * @param x The X velocity multiplier
      * @param y The Y velocity multiplier
      * @param z The Z velocity multiplier
@@ -348,11 +439,30 @@ public class FluidBuilder {
     }
 
     /**
+     * Prevents dripstone from filling up cauldrons
+     * @return this
+     */
+    public FluidBuilder notDrippable() {
+        this.settings.notDrippable();
+        return this;
+    }
+
+    /**
      * @param settings The block settings for the custom fluid
      * @return this
      */
     public FluidBuilder blockSettings(AbstractBlock.Settings settings) {
         this.fluidSettings = settings.replaceable().noCollision().strength(100f).pistonBehavior(PistonBehavior.DESTROY).dropsNothing().liquid().sounds(BlockSoundGroup.INTENTIONALLY_EMPTY);
+        return this;
+    }
+
+    /**
+     * Note: does not apply default fluid block settings. Have fun :)
+     * @param settings The block settings for the custom fluid
+     * @return this
+     */
+    public FluidBuilder blockSettingsNoDefaults(AbstractBlock.Settings settings) {
+        this.fluidSettings = settings;
         return this;
     }
 
@@ -375,12 +485,11 @@ public class FluidBuilder {
     }
 
     /**
-     * Note: does not apply default fluid block settings. Have fun :)
-     * @param settings The block settings for the custom fluid
+     * @param settings The item settings that will be used when registering the bottle item
      * @return this
      */
-    public FluidBuilder blockSettingsNoDefaults(AbstractBlock.Settings settings) {
-        this.fluidSettings = settings;
+    public FluidBuilder bottleSettings(Item.Settings settings) {
+        this.bottleSettings = settings;
         return this;
     }
 
@@ -391,14 +500,17 @@ public class FluidBuilder {
     public CustomFluid build() {
         if (FLUIDS.containsKey(this.id))
             throw new RuntimeException("ID already registered: " + this.id);
-        CustomFluid fluid = this.factory.create(this.bucketFactory, this.submersionType, this.fog, this.settings, this.flowingFactory);
+        CustomFluid fluid = this.factory.create(this.bucketFactory, this.bottleFactory, this.splashBottleFactory, this.lingeringBottleFactory, this.submersionType, this.fog, this.settings, this.flowingFactory);
         if (this.createBucket) {
             BUCKET_GROUP_MAPPING.put(this.id, Pair.of(this.bucketItemGroup, this.bucketAfter));
             BUCKET_SETTINGS.put(this.id, this.bucketSettings);
         }
         if (this.createCauldron) {
-            CAULDRONS.add(Pair.of(this.id, Pair.of(this.cauldronBurns, this.createBottleOfFluid)));
+            CAULDRONS.add(Pair.of(this.id, Pair.of(this.cauldronBurns, this.createBottle)));
             CAULDRON_SETTINGS.put(this.id, this.cauldronSettings);
+        }
+        if (this.createBottle) {
+            //BOTTLE_SETTINGS.put(this.id, this.bottleSettings);
         }
         FLUIDS.put(this.id, fluid);
         FLUID_SETTINGS.put(this.id, this.fluidSettings);
@@ -406,7 +518,9 @@ public class FluidBuilder {
     }
 
     interface CustomFluidFactory<T extends CustomFluid> {
-        T create(BucketFactory<Item> bucketFactory, CameraSubmersionType submersionType, CustomFluid.FogData fog,
+        T create(BucketFactory<Item> bucketFactory,BottleFactory<Item> bottleFactory,
+                 BottleFactory<Item> splashBottleFactory, BottleFactory<Item> lingeringBottleFactory,
+                 CameraSubmersionType submersionType, CustomFluid.FogData fog,
                  Settings settings, FluidFactory<?> flowingFactory);
     }
 
@@ -419,30 +533,32 @@ public class FluidBuilder {
     }
 
     public interface BottleFactory<T> {
-        T create(Item.Settings settings);
+        T create(Item.Settings settings, int tintColor);
     }
 
     public static class Settings {
         Identifier submergedTexture;
-        boolean infinite;
-        int flowSpeed;
-        int levelDecreasePerBlock;
-        int tickRate;
+        Function<World, Boolean> infinite;
+        Function<WorldView, Integer> flowSpeed;
+        Function<WorldView, Integer> levelDecreasePerBlock;
+        Function<WorldView, Integer> tickRate;
         float blastResistance;
         int tintColor;
         TagKey<Fluid> tag;
         Vec3d velocityMultiplier;
+        boolean drippable;
 
         public Settings() {
             this.submergedTexture = new Identifier("textures/misc/underwater");
-            this.infinite = false;
-            this.flowSpeed = 4;
-            this.levelDecreasePerBlock = 1;
-            this.tickRate = 15;
+            this.infinite = ignored -> false;
+            this.flowSpeed = ignored -> 4;
+            this.levelDecreasePerBlock = ignored -> 1;
+            this.tickRate = ignored -> 15;
             this.blastResistance = 100f;
             this.tintColor = -1;
             this.tag = FluidTags.WATER;
             this.velocityMultiplier = new Vec3d(1, 1, 1);
+            this.drippable = true;
         }
 
         protected Settings submergedTexture(Identifier path) {
@@ -451,21 +567,41 @@ public class FluidBuilder {
         }
 
         protected Settings infinite() {
-            this.infinite = true;
+            this.infinite = ignored -> true;
+            return this;
+        }
+
+        protected Settings infinite(Function<World, Boolean> infinite) {
+            this.infinite = infinite;
             return this;
         }
 
         protected Settings flowSpeed(int flowSpeed) {
+            this.flowSpeed = ignored -> flowSpeed;
+            return this;
+        }
+
+        protected Settings flowSpeed(Function<WorldView, Integer> flowSpeed) {
             this.flowSpeed = flowSpeed;
             return this;
         }
 
         protected Settings levelDecreasePerBlock(int levelDecreasePerBlock) {
+            this.levelDecreasePerBlock = ignored -> levelDecreasePerBlock;
+            return this;
+        }
+
+        protected Settings levelDecreasePerBlock(Function<WorldView, Integer> levelDecreasePerBlock) {
             this.levelDecreasePerBlock = levelDecreasePerBlock;
             return this;
         }
 
         protected Settings tickRate(int tickRate) {
+            this.tickRate = ignored -> tickRate;
+            return this;
+        }
+
+        protected Settings tickRate(Function<WorldView, Integer> tickRate) {
             this.tickRate = tickRate;
             return this;
         }
@@ -495,23 +631,28 @@ public class FluidBuilder {
             return this;
         }
 
+        protected Settings notDrippable() {
+            this.drippable = false;
+            return this;
+        }
+
         public Identifier getSubmergedTexture() {
             return this.submergedTexture;
         }
 
-        public boolean isInfinite() {
+        public Function<World, Boolean> isInfinite() {
             return this.infinite;
         }
 
-        public int getFlowSpeed() {
+        public Function<WorldView, Integer> getFlowSpeed() {
             return this.flowSpeed;
         }
 
-        public int getLevelDecreasePerBlock() {
+        public Function<WorldView, Integer> getLevelDecreasePerBlock() {
             return this.levelDecreasePerBlock;
         }
 
-        public int getTickRate() {
+        public Function<WorldView, Integer> getTickRate() {
             return this.tickRate;
         }
 
@@ -529,6 +670,10 @@ public class FluidBuilder {
 
         public Vec3d getVelocityMultiplier() {
             return this.velocityMultiplier;
+        }
+
+        public boolean isDrippable() {
+            return this.drippable;
         }
     }
 }

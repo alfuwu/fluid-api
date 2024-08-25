@@ -34,6 +34,7 @@ import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 // what is this monstrosity
 public class CustomFluid extends FlowableFluid {
@@ -43,18 +44,28 @@ public class CustomFluid extends FlowableFluid {
     protected final Identifier submergedTexture;
     protected Item bucket;
     protected final FluidBuilder.BucketFactory<Item> bucketFactory;
-    protected final boolean infinite; // broken when true (??? visible confusion)
-    protected final int flowSpeed;
-    protected final int levelDecreasePerBlock;
-    protected final int tickRate;
+    protected Item bottle;
+    protected final FluidBuilder.BottleFactory<Item> bottleFactory;
+    protected final FluidBuilder.BottleFactory<Item> splashBottleFactory;
+    protected final FluidBuilder.BottleFactory<Item> lingeringBottleFactory;
+    protected final Function<World, Boolean> infinite; // broken when true (??? visible confusion)
+    protected final Function<WorldView, Integer> flowSpeed;
+    protected final Function<WorldView, Integer> levelDecreasePerBlock;
+    protected final Function<WorldView, Integer> tickRate;
     protected final float blastResistance;
     protected final int tintColor;
     protected final TagKey<Fluid> tag;
     protected final Vec3d velocityMultiplier;
+    protected final boolean drippable;
 
-    protected CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings) {
+    // too many arguments aaaaaaaaa
+    protected CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, FluidBuilder.BottleFactory<Item> bottleFactory, FluidBuilder.BottleFactory<Item> splashBottleFactory, FluidBuilder.BottleFactory<Item> lingeringBottleFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings) {
         this.bucket = null;
         this.bucketFactory = bucketFactory;
+        this.bottle = null;
+        this.bottleFactory = bottleFactory;
+        this.splashBottleFactory = splashBottleFactory;
+        this.lingeringBottleFactory = lingeringBottleFactory;
         this.submersionType = submersionType;
         this.fog = fog;
 
@@ -67,11 +78,12 @@ public class CustomFluid extends FlowableFluid {
         this.tintColor = settings.getTintColor();
         this.tag = settings.getTag();
         this.velocityMultiplier = settings.getVelocityMultiplier();
+        this.drippable = settings.isDrippable();
         this.flowing = null;
     }
 
-    public CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings, FluidBuilder.FluidFactory<?> flowingFactory) {
-        this(bucketFactory, submersionType, fog, settings);
+    public CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, FluidBuilder.BottleFactory<Item> bottleFactory, FluidBuilder.BottleFactory<Item> splashBottleFactory, FluidBuilder.BottleFactory<Item> lingeringBottleFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings, FluidBuilder.FluidFactory<?> flowingFactory) {
+        this(bucketFactory, bottleFactory, splashBottleFactory, lingeringBottleFactory, submersionType, fog, settings);
         this.flowing = (FlowableFluid) flowingFactory.create(this, settings);
     }
 
@@ -86,7 +98,7 @@ public class CustomFluid extends FlowableFluid {
     
     @Override
     protected boolean isInfinite(World world) {
-        return this.infinite;
+        return this.infinite.apply(world);
     }
 
     @Override
@@ -102,12 +114,12 @@ public class CustomFluid extends FlowableFluid {
 
     @Override
     protected int getFlowSpeed(WorldView world) {
-        return this.flowSpeed;
+        return this.flowSpeed.apply(world);
     }
 
     @Override
     protected int getLevelDecreasePerBlock(WorldView world) {
-        return this.levelDecreasePerBlock;
+        return this.levelDecreasePerBlock.apply(world);
     }
 
     @Override
@@ -123,6 +135,26 @@ public class CustomFluid extends FlowableFluid {
         return this.bucketFactory;
     }
 
+    public Item getBottleItem() {
+        return this.bottle;
+    }
+
+    public void setBottleItem(Item bottle) {
+        this.bottle = bottle;
+    }
+
+    public FluidBuilder.BottleFactory<Item> getBottleFactory() {
+        return this.bottleFactory;
+    }
+
+    public FluidBuilder.BottleFactory<Item> getSplashBottleFactory() {
+        return this.splashBottleFactory;
+    }
+
+    public FluidBuilder.BottleFactory<Item> getLingeringBottleFactory() {
+        return this.lingeringBottleFactory;
+    }
+
     @Override
     protected boolean canBeReplacedWith(FluidState state, BlockView world, BlockPos pos, Fluid fluid, Direction direction) {
         return direction == Direction.DOWN && !fluid.isIn(this.getTag());
@@ -130,7 +162,7 @@ public class CustomFluid extends FlowableFluid {
 
     @Override
     public int getTickRate(WorldView world) {
-        return this.tickRate;
+        return this.tickRate.apply(world);
     }
 
     @Override
@@ -172,6 +204,10 @@ public class CustomFluid extends FlowableFluid {
 
     public Vec3d getVelocityMultiplier() {
         return this.velocityMultiplier;
+    }
+
+    public boolean isDrippable() {
+        return this.drippable;
     }
 
     public CameraSubmersionType getSubmersionType() {
@@ -239,7 +275,7 @@ public class CustomFluid extends FlowableFluid {
         protected CustomFluid parent;
 
         public Flowing(CustomFluid parent, FluidBuilder.Settings settings) {
-            super(parent.bucketFactory, parent.submersionType, parent.fog, settings);
+            super(parent.bucketFactory, parent.bottleFactory, parent.splashBottleFactory, parent.lingeringBottleFactory, parent.submersionType, parent.fog, settings);
             this.parent = parent;
         }
 

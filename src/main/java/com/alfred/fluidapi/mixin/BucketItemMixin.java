@@ -19,8 +19,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(BucketItem.class)
 public class BucketItemMixin {
     @Inject(method = "use", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/hit/BlockHitResult;getBlockPos()Lnet/minecraft/util/math/BlockPos;"), cancellable = true)
-    private void dontDrain(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir, @Local BlockHitResult result) {
+    private void dontDrain(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir, @Local ItemStack stack, @Local BlockHitResult result) {
         if (result.getType() == HitResult.Type.BLOCK && world.getBlockState(result.getBlockPos()).getBlock() instanceof FluidBlock fluidBlock && fluidBlock.getFluidState(world.getBlockState(result.getBlockPos())).getFluid() instanceof CustomFluid fluid && fluid.getBucketItem() == null)
-            cir.setReturnValue(TypedActionResult.fail(user.getStackInHand(hand)));
+            cir.setReturnValue(TypedActionResult.fail(stack));
     }
 }
