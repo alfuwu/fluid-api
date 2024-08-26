@@ -1,6 +1,5 @@
 package com.alfred.fluidapi;
 
-import com.alfred.fluidapi.registry.Blocks;
 import com.alfred.fluidapi.registry.FluidBuilder;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.block.Block;
@@ -43,11 +42,7 @@ public class CustomFluid extends FlowableFluid {
     protected final FogData fog;
     protected final Identifier submergedTexture;
     protected Item bucket;
-    protected final FluidBuilder.BucketFactory<Item> bucketFactory;
     protected Item bottle;
-    protected final FluidBuilder.BottleFactory<Item> bottleFactory;
-    protected final FluidBuilder.BottleFactory<Item> splashBottleFactory;
-    protected final FluidBuilder.BottleFactory<Item> lingeringBottleFactory;
     protected final Function<World, Boolean> infinite; // broken when true (??? visible confusion)
     protected final Function<WorldView, Integer> flowSpeed;
     protected final Function<WorldView, Integer> levelDecreasePerBlock;
@@ -64,13 +59,9 @@ public class CustomFluid extends FlowableFluid {
     protected final Consumer<Entity> entityTick;
 
     // too many arguments aaaaaaaaa
-    protected CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, FluidBuilder.BottleFactory<Item> bottleFactory, FluidBuilder.BottleFactory<Item> splashBottleFactory, FluidBuilder.BottleFactory<Item> lingeringBottleFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings) {
+    protected CustomFluid(CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings) {
         this.bucket = null;
-        this.bucketFactory = bucketFactory;
         this.bottle = null;
-        this.bottleFactory = bottleFactory;
-        this.splashBottleFactory = splashBottleFactory;
-        this.lingeringBottleFactory = lingeringBottleFactory;
         this.submersionType = submersionType;
         this.fog = fog;
 
@@ -97,8 +88,8 @@ public class CustomFluid extends FlowableFluid {
         this.flowing = null;
     }
 
-    public CustomFluid(FluidBuilder.BucketFactory<Item> bucketFactory, FluidBuilder.BottleFactory<Item> bottleFactory, FluidBuilder.BottleFactory<Item> splashBottleFactory, FluidBuilder.BottleFactory<Item> lingeringBottleFactory, CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings, FluidBuilder.FluidFactory<?> flowingFactory) {
-        this(bucketFactory, bottleFactory, splashBottleFactory, lingeringBottleFactory, submersionType, fog, settings);
+    public CustomFluid(CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings, FluidBuilder.FluidFactory<?> flowingFactory) {
+        this(submersionType, fog, settings);
         this.flowing = (FlowableFluid) flowingFactory.create(this, settings);
     }
 
@@ -146,28 +137,12 @@ public class CustomFluid extends FlowableFluid {
         this.bucket = bucket;
     }
 
-    public FluidBuilder.BucketFactory<Item> getBucketFactory() {
-        return this.bucketFactory;
-    }
-
     public Item getBottleItem() {
         return this.bottle;
     }
 
     public void setBottleItem(Item bottle) {
         this.bottle = bottle;
-    }
-
-    public FluidBuilder.BottleFactory<Item> getBottleFactory() {
-        return this.bottleFactory;
-    }
-
-    public FluidBuilder.BottleFactory<Item> getSplashBottleFactory() {
-        return this.splashBottleFactory;
-    }
-
-    public FluidBuilder.BottleFactory<Item> getLingeringBottleFactory() {
-        return this.lingeringBottleFactory;
     }
 
     @Override
@@ -187,7 +162,7 @@ public class CustomFluid extends FlowableFluid {
 
     @Override
     protected BlockState toBlockState(FluidState state) {
-        return Blocks.get(this).getDefaultState().with(FluidBlock.LEVEL, getBlockStateLevel(state));
+        return FluidBuilder.FLUID_BLOCKS.get(this).getDefaultState().with(FluidBlock.LEVEL, getBlockStateLevel(state));
     }
 
     @Override
@@ -330,7 +305,7 @@ public class CustomFluid extends FlowableFluid {
         protected CustomFluid parent;
 
         public Flowing(CustomFluid parent, FluidBuilder.Settings settings) {
-            super(parent.bucketFactory, parent.bottleFactory, parent.splashBottleFactory, parent.lingeringBottleFactory, parent.submersionType, parent.fog, settings);
+            super(parent.submersionType, parent.fog, settings);
             this.parent = parent;
         }
 

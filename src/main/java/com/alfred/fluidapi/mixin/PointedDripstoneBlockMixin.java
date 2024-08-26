@@ -2,9 +2,7 @@ package com.alfred.fluidapi.mixin;
 
 import com.alfred.fluidapi.CustomFluid;
 import com.alfred.fluidapi.LeveledCauldronBlock;
-import com.alfred.fluidapi.registry.Blocks;
 import com.alfred.fluidapi.registry.FluidBuilder;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import net.minecraft.block.AbstractCauldronBlock;
@@ -37,7 +35,7 @@ public class PointedDripstoneBlockMixin {
         PointedDripstoneBlock.DrippingFluid dripping = instance.get();
         Fluid fluid = dripping.fluid;
         if (fluid instanceof CustomFluid fluid1 && fluid1.isDrippable()) {
-            AbstractCauldronBlock cauldron = Blocks.CAULDRONS.get(FluidBuilder.FLUIDS.entrySet().stream().filter(entry -> fluid1.equals(entry.getValue())).map(Map.Entry::getKey).findFirst().orElse(null));
+            AbstractCauldronBlock cauldron = FluidBuilder.CAULDRONS.get(FluidBuilder.FLUIDS.entrySet().stream().filter(entry -> fluid1.equals(entry.getValue())).map(Map.Entry::getKey).findFirst().orElse(null));
             if (cauldron instanceof LeveledCauldronBlock)
                 return new PointedDripstoneBlock.DrippingFluid(dripping.pos, fluid1 == fluid1.getStill() ? Fluids.WATER : Fluids.FLOWING_WATER, dripping.sourceState);
             else

@@ -1,11 +1,9 @@
 package com.alfred.fluidapi.mixin;
 
 import com.alfred.fluidapi.CustomFluid;
-import com.alfred.fluidapi.registry.Blocks;
 import com.alfred.fluidapi.registry.FluidBuilder;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.CauldronBlock;
-import net.minecraft.block.FluidBlock;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -29,7 +27,7 @@ public class CauldronBlockMixin {
     @Inject(method = "fillFromDripstone", at = @At("HEAD"))
     private void fillWithCustomFluid(BlockState state, World world, BlockPos pos, Fluid fluid, CallbackInfo ci) {
         if (fluid instanceof CustomFluid fluid1) {
-            BlockState state1 = Blocks.CAULDRONS.get(FluidBuilder.FLUIDS.entrySet().stream().filter(entry -> fluid1.equals(entry.getValue())).map(Map.Entry::getKey).findFirst().orElse(null)).getDefaultState();
+            BlockState state1 = FluidBuilder.CAULDRONS.get(FluidBuilder.FLUIDS.entrySet().stream().filter(entry -> fluid1.equals(entry.getValue())).map(Map.Entry::getKey).findFirst().orElse(null)).getDefaultState();
             world.setBlockState(pos, state1);
             world.emitGameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Emitter.of(state1));
         }

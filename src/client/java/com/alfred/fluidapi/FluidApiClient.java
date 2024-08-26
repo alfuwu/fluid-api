@@ -1,6 +1,5 @@
 package com.alfred.fluidapi;
 
-import com.alfred.fluidapi.registry.Blocks;
 import com.alfred.fluidapi.registry.FluidBuilder;
 import com.mojang.datafixers.util.Pair;
 import net.fabricmc.api.ClientModInitializer;
@@ -29,8 +28,8 @@ public class FluidApiClient implements ClientModInitializer {
 		}
 
 		// apply tint color to tinted cauldrons
-		for (Pair<Block, Integer> pair : Blocks.TINTED_BLOCKS)
+		for (Pair<Block, Integer> pair : FluidBuilder.TINTED_BLOCKS)
 			ColorProviderRegistry.BLOCK.register((state, view, pos, tintIndex) ->
-					tintIndex == 0 ? pair.getSecond() : 0xFFFFFF, pair.getFirst());
+					tintIndex == 0 ? pair.getSecond() : 0xffffff, pair.getFirst());
 	}
 }

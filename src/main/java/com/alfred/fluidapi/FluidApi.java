@@ -15,11 +15,11 @@ import static net.minecraft.block.Blocks.CAULDRON;
 
 public class FluidApi implements ModInitializer {
 	/* Test fluid
-	public static CustomFluid SOUP = FluidBuilder.create(FluidApi.identifier("soup"))
-			.fogColor(0x762B1C) // makes the fog a dark reddish color
-			.tintColor(0xFF5533) // makes the fluid a red color
+	public static CustomFluid SOUP = FluidBuilder.create(new Identifier("fluid-api", "soup"))
+			.fogColor(0x762b1c) // makes the fog a dark reddish color
+			.tintColor(0xff5533) // makes the fluid a red color
 			.tag(FluidTags.LAVA) // makes entities burn in the fluid and makes the fluid act as lava does for most things
-			.submergedTexture(identifier("textures/misc/in_fluid.png")) // the texture that will render on screen when a player is submerged within the fluid
+			.submergedTexture(new Identifier("fluid-api", "textures/misc/in_fluid.png")) // the texture that will render on screen when a player is submerged within the fluid
 			.blastResistance(2f) // makes soup provide very little resistance against explosions
 			.flowSpeed(1) // makes the liquid move every tick
 			.tickRate(1) // increases tick rate to the maximum possible
@@ -37,6 +37,7 @@ public class FluidApi implements ModInitializer {
 			.submersionType(CameraSubmersionType.LAVA) // doesn't really do much
 			.bottle() // adds bottles and makes the cauldron a leveled cauldron (like that of the water cauldron)
 			.customLingeringBottleItem(null) // removes the lingering bottle variant
+			.bottleStatusEffects(new StatusEffectInstance(StatusEffects.NAUSEA, 100, 3))
 			.entityTick(entity -> {
 				if (entity instanceof LivingEntity living)
 					living.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 200, 3)); // gives living entities the nausea IV status effect while touching soup, and then for 10 seconds afterwards
@@ -45,13 +46,5 @@ public class FluidApi implements ModInitializer {
 	*/
 
 	@Override
-	public void onInitialize() {
-		Blocks.register();
-		Items.register();
-		Blocks.registerCauldrons();
-	}
-	
-	public static Identifier identifier(String path) {
-		return new Identifier("fluid-api", path);
-	}
+	public void onInitialize() { }
 }
