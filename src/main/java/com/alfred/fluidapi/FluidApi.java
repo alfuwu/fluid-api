@@ -44,7 +44,6 @@ public class FluidApi implements ModInitializer {
 			.build(); // creates the fluid
 	*/
 
-
 	@Override
 	public void onInitialize() {
 		Blocks.register();
