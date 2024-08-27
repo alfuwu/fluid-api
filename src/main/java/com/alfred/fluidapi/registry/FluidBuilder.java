@@ -74,6 +74,7 @@ public class FluidBuilder {
     protected CustomFluidFactory<?> factory;
     protected FluidFactory<?> flowingFactory;
     protected BucketFactory<Item> bucketFactory;
+    protected Item bottleItem;
     protected BottleFactory<Item> bottleFactory;
     protected BottleFactory<Item> splashBottleFactory;
     protected BottleFactory<Item> lingeringBottleFactory;
@@ -100,6 +101,7 @@ public class FluidBuilder {
         builder.bucketItemGroup = ItemGroups.TOOLS;
         builder.bucketAfter = Items.MILK_BUCKET;
         builder.bucketFactory = BucketItem::new;
+        builder.bottleItem = null;
         builder.bottleFactory = FluidPotionItem::new;
         builder.splashBottleFactory = FluidSplashPotionItem::new;
         builder.lingeringBottleFactory = FluidLingeringPotionItem::new;
@@ -282,6 +284,11 @@ public class FluidBuilder {
      */
     public FluidBuilder customLingeringBottleItem(@Nullable BottleFactory<Item> factory) {
         this.lingeringBottleFactory = factory;
+        return this;
+    }
+
+    public FluidBuilder customExistingBottleItem(Item item) {
+        this.bottleItem = item;
         return this;
     }
 
@@ -590,6 +597,49 @@ public class FluidBuilder {
         FLUID_BLOCKS.put(fluid.getStill(), fluidBlock);
         FLUID_BLOCKS.put(fluid.getFlowing(), fluidBlock);
 
+        if (this.createBucket) {
+            Item bucket = Registry.register(Registries.ITEM, this.id.withSuffixedPath("_bucket"), this.bucketFactory.create(fluid, this.bucketSettings));
+            fluid.setBucketItem(bucket);
+            Pair<Item, Item> pair = Pair.of(bucket, this.bucketAfter);
+            if (this.bucketItemGroup != null)
+                ItemGroupEvents.modifyEntriesEvent(this.bucketItemGroup).register(content -> {
+                    if (this.bucketAfter != null)
+                        content.addAfter(this.bucketAfter, bucket);
+                    else
+                        content.add(bucket);
+                });
+        }
+
+        if (this.createBottle && this.bottleItem == null) {
+            Item bottle = null, splashBottle = null, lingeringBottle = null;
+            if (this.bottleFactory != null)
+                bottle = registerBottle(this.bottleFactory, this.bottleSettings, fluid, this.bottleTooltip, this.bottleStatusEffects, this.id.withSuffixedPath("_bottle"), null, 0);
+            if (this.splashBottleFactory != null)
+                splashBottle = registerBottle(this.splashBottleFactory, this.bottleSettings, fluid, this.bottleTooltip, this.bottleStatusEffects, this.id.withPrefixedPath("splash_").withSuffixedPath("_bottle"), bottle, 1);
+            if (this.lingeringBottleFactory != null)
+                lingeringBottle = registerBottle(this.lingeringBottleFactory, this.bottleSettings, fluid, this.bottleTooltip, this.bottleStatusEffects, this.id.withPrefixedPath("lingering_").withSuffixedPath("_bottle"), splashBottle, 2);
+
+            // why
+            Item bottle1 = bottle, splashBottle1 = splashBottle, lingeringBottle1 = lingeringBottle;
+            // add custom bottles before the water bottle item
+            ItemGroupEvents.modifyEntriesEvent(ItemGroups.FOOD_AND_DRINK).register(content -> {
+                if (bottle1 != null)
+                    content.addBefore(itemStack -> itemStack.getItem() instanceof PotionItem,
+                            Arrays.stream(new Item[] { bottle1 }).map(ItemStack::new).toList(),
+                            ItemGroup.StackVisibility.PARENT_AND_SEARCH_TABS);
+                if (splashBottle1 != null)
+                    content.addBefore(itemStack -> itemStack.getItem() instanceof SplashPotionItem,
+                            Arrays.stream(new Item[] { splashBottle1 }).map(ItemStack::new).toList(),
+                            ItemGroup.StackVisibility.PARENT_AND_SEARCH_TABS);
+                if (lingeringBottle1 != null)
+                    content.addBefore(itemStack -> itemStack.getItem() instanceof LingeringPotionItem,
+                            Arrays.stream(new Item[] { lingeringBottle1 }).map(ItemStack::new).toList(),
+                            ItemGroup.StackVisibility.PARENT_AND_SEARCH_TABS);
+            });
+        } else if (this.bottleItem != null) {
+            fluid.setBottleItem(this.bottleItem);
+        }
+
         if (this.createCauldron) {
             AbstractCauldronBlock block;
             if (this.createBottle)
@@ -665,47 +715,6 @@ public class FluidBuilder {
             }
 
             block.behaviorMap = behaviorMap;
-        }
-
-        if (this.createBucket) {
-            Item bucket = Registry.register(Registries.ITEM, this.id.withSuffixedPath("_bucket"), this.bucketFactory.create(fluid, this.bucketSettings));
-            fluid.setBucketItem(bucket);
-            Pair<Item, Item> pair = Pair.of(bucket, this.bucketAfter);
-            if (this.bucketItemGroup != null)
-                ItemGroupEvents.modifyEntriesEvent(this.bucketItemGroup).register(content -> {
-                    if (this.bucketAfter != null)
-                        content.addAfter(this.bucketAfter, bucket);
-                    else
-                        content.add(bucket);
-                });
-        }
-
-        if (this.createBottle) {
-            Item bottle = null, splashBottle = null, lingeringBottle = null;
-            if (this.bottleFactory != null)
-                bottle = registerBottle(this.bottleFactory, this.bottleSettings, fluid, this.bottleTooltip, this.bottleStatusEffects, this.id.withSuffixedPath("_bottle"), null, 0);
-            if (this.splashBottleFactory != null)
-                splashBottle = registerBottle(this.splashBottleFactory, this.bottleSettings, fluid, this.bottleTooltip, this.bottleStatusEffects, this.id.withPrefixedPath("splash_").withSuffixedPath("_bottle"), bottle, 1);
-            if (this.lingeringBottleFactory != null)
-                lingeringBottle = registerBottle(this.lingeringBottleFactory, this.bottleSettings, fluid, this.bottleTooltip, this.bottleStatusEffects, this.id.withPrefixedPath("lingering_").withSuffixedPath("_bottle"), splashBottle, 2);
-
-            // why
-            Item bottle1 = bottle, splashBottle1 = splashBottle, lingeringBottle1 = lingeringBottle;
-            // add custom bottles before the water bottle item
-            ItemGroupEvents.modifyEntriesEvent(ItemGroups.FOOD_AND_DRINK).register(content -> {
-                if (bottle1 != null)
-                    content.addBefore(itemStack -> itemStack.getItem() instanceof PotionItem,
-                            Arrays.stream(new Item[] { bottle1 }).map(ItemStack::new).toList(),
-                            ItemGroup.StackVisibility.PARENT_AND_SEARCH_TABS);
-                if (splashBottle1 != null)
-                    content.addBefore(itemStack -> itemStack.getItem() instanceof SplashPotionItem,
-                            Arrays.stream(new Item[] { splashBottle1 }).map(ItemStack::new).toList(),
-                            ItemGroup.StackVisibility.PARENT_AND_SEARCH_TABS);
-                if (lingeringBottle1 != null)
-                    content.addBefore(itemStack -> itemStack.getItem() instanceof LingeringPotionItem,
-                            Arrays.stream(new Item[] { lingeringBottle1 }).map(ItemStack::new).toList(),
-                            ItemGroup.StackVisibility.PARENT_AND_SEARCH_TABS);
-            });
         }
 
         return fluid;
