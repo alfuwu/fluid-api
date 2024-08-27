@@ -642,7 +642,7 @@ public class FluidBuilder {
 
         if (this.createCauldron) {
             AbstractCauldronBlock block;
-            if (this.createBottle)
+            if (this.createBottle || this.bottleItem != null)
                 block = new LeveledCauldronBlock(this.cauldronSettings, fluid, this.cauldronBurns);
             else
                 block = new FullCauldronBlock(this.cauldronSettings, fluid.getEntityTick() != null ? fluid.getEntityTick() : entity -> {}, this.cauldronBurns);
