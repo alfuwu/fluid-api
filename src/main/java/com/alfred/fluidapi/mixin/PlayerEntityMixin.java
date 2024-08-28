@@ -20,24 +20,24 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     }
 
     @Inject(method = "getSwimSound", at = @At("HEAD"), cancellable = true)
-    private void getSculkSwimSound(CallbackInfoReturnable<SoundEvent> cir) {
+    private void getFluidSwimSound(CallbackInfoReturnable<SoundEvent> cir) {
         FluidState fluidState = this.getWorld().getFluidState(this.getBlockPos());
         if (fluidState.getFluid() instanceof CustomFluid fluid)
-            cir.setReturnValue(SoundEvents.BLOCK_SCULK_CHARGE);
+            cir.setReturnValue(fluid.getPlayerSwimSound());
     }
 
     @Inject(method = "getSplashSound", at = @At("HEAD"), cancellable = true)
-    private void getSculkSplashSound(CallbackInfoReturnable<SoundEvent> cir) {
+    private void getFluidSplashSound(CallbackInfoReturnable<SoundEvent> cir) {
         FluidState fluidState = this.getWorld().getFluidState(this.getBlockPos());
         if (fluidState.getFluid() instanceof CustomFluid fluid)
-            cir.setReturnValue(SoundEvents.BLOCK_SCULK_PLACE);
+            cir.setReturnValue(fluid.getPlayerSplashSound());
     }
 
     @Inject(method = "getHighSpeedSplashSound", at = @At("HEAD"), cancellable = true)
-    private void getHighSpeedSculkSplashSound(CallbackInfoReturnable<SoundEvent> cir) {
+    private void getFluidSpeedSculkSplashSound(CallbackInfoReturnable<SoundEvent> cir) {
         FluidState fluidState = this.getWorld().getFluidState(this.getBlockPos());
         if (fluidState.getFluid() instanceof CustomFluid fluid)
-            cir.setReturnValue(SoundEvents.BLOCK_SCULK_PLACE);
+            cir.setReturnValue(fluid.getPlayerHighSpeedSplashSound());
     }
 }
 

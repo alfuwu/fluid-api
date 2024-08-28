@@ -4,6 +4,7 @@ import com.alfred.fluidapi.registry.*;
 import com.mojang.datafixers.util.Pair;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.render.CameraSubmersionType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -14,7 +15,7 @@ import net.minecraft.util.Identifier;
 import static net.minecraft.block.Blocks.CAULDRON;
 
 public class FluidApi implements ModInitializer {
-	/* Test fluid
+	///* Test fluid
 	public static CustomFluid SOUP = FluidBuilder.create(new Identifier("fluid-api", "soup"))
 			.fogColor(0x762b1c) // makes the fog a dark reddish color
 			.tintColor(0xff5533) // makes the fluid a red color
@@ -42,8 +43,11 @@ public class FluidApi implements ModInitializer {
 				if (entity instanceof LivingEntity living)
 					living.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 200, 3)); // gives living entities the nausea IV status effect while touching soup, and then for 10 seconds afterwards
 			})
+			.vanillaCombinesWith(true)
+			.vanillaCombinesWithFlowing(true)
+			//.combinesWithBasic(Blocks.SLIME_BLOCK, Blocks.NETHERRACK, null)
 			.build(); // creates the fluid
-	*/
+	//*/
 
 	@Override
 	public void onInitialize() { }

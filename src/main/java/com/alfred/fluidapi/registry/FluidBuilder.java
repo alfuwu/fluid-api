@@ -11,10 +11,7 @@ import io.netty.util.internal.UnstableApi;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.AbstractCauldronBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.FluidBlock;
+import net.minecraft.block.*;
 import net.minecraft.block.cauldron.CauldronBehavior;
 import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.client.render.CameraSubmersionType;
@@ -24,6 +21,7 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.fluid.FlowableFluid;
 import net.minecraft.fluid.Fluid;
+import net.minecraft.fluid.Fluids;
 import net.minecraft.item.*;
 import net.minecraft.item.Items;
 import net.minecraft.recipe.BrewingRecipeRegistry;
@@ -40,8 +38,12 @@ import net.minecraft.stat.Stats;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
+import net.minecraft.world.WorldEvents;
 import net.minecraft.world.WorldView;
 import net.minecraft.world.event.GameEvent;
 import org.jetbrains.annotations.Nullable;
@@ -523,6 +525,36 @@ public class FluidBuilder {
         return this;
     }
 
+    public FluidBuilder combinesWith(CombinesWithPredicate predicate) {
+        this.settings.combinesWith(predicate);
+        return this;
+    }
+
+    public FluidBuilder combinesWithBasic(Block lavaCombination, Block waterCombination, Block otherCombination) {
+        this.settings.combinesWithBasic(lavaCombination, waterCombination, otherCombination);
+        return this;
+    }
+
+    public FluidBuilder vanillaCombinesWith(boolean playExtinguishSound) {
+        this.settings.vanillaCombinesWith(playExtinguishSound);
+        return this;
+    }
+
+    public FluidBuilder combinesWithFlowing(CombinesWithFlowingPredicate predicate) {
+        this.settings.combinesWithFlowing(predicate);
+        return this;
+    }
+
+    public FluidBuilder combinesWithFlowingBasic(Block lavaCombination, Block waterCombination, Block otherCombination) {
+        this.settings.combinesWithFlowingBasic(lavaCombination, waterCombination, otherCombination);
+        return this;
+    }
+
+    public FluidBuilder vanillaCombinesWithFlowing(boolean playExtinguishSound) {
+        this.settings.vanillaCombinesWithFlowing(playExtinguishSound);
+        return this;
+    }
+
     /**
      * @param settings The block settings for the custom fluid
      * @return this
@@ -750,6 +782,14 @@ public class FluidBuilder {
         T create(Item.Settings settings, int tintColor, @Nullable Text tooltip, @Nullable List<StatusEffectInstance> statusEffects);
     }
 
+    public interface CombinesWithPredicate {
+        @Nullable BlockState test(FluidBlock self, World world, BlockPos pos, Direction direction);
+    }
+
+    public interface CombinesWithFlowingPredicate {
+        @Nullable BlockState test(Fluid self, Fluid other, WorldAccess world, BlockPos pos);
+    }
+
     public static class Settings {
         Identifier submergedTexture;
         Function<World, Boolean> infinite;
@@ -766,6 +806,8 @@ public class FluidBuilder {
         float splashSoundVolume, swimSoundVolume;
         boolean breathable;
         Consumer<Entity> entityTick;
+        CombinesWithPredicate combinesWith;
+        CombinesWithFlowingPredicate combinesWithFlowing;
 
         public Settings() {
             this.submergedTexture = new Identifier("textures/misc/underwater");
@@ -788,6 +830,8 @@ public class FluidBuilder {
             this.swimSoundVolume = 1f;
             this.breathable = false;
             this.entityTick = entity -> {};
+            this.combinesWith = (fluidBlock, world, pos, direction) -> null;
+            this.combinesWithFlowing = (self, other, world, pos) -> null;
         }
 
         protected Settings submergedTexture(Identifier path) {
@@ -915,6 +959,73 @@ public class FluidBuilder {
             return this;
         }
 
+        public Settings combinesWith(CombinesWithPredicate predicate) {
+            this.combinesWith = predicate;
+            return this;
+        }
+
+        public Settings combinesWithBasic(@Nullable Block lavaCombination, @Nullable Block waterCombination, @Nullable Block otherCombination) {
+            this.combinesWith((fluidBlock, world, pos, direction) -> {
+                Fluid fluid = world.getFluidState(pos).getFluid();
+                if (fluid.matchesType(Fluids.LAVA) && lavaCombination != null)
+                    return lavaCombination.getDefaultState();
+                else if (fluid.matchesType(Fluids.WATER) && waterCombination != null)
+                    return waterCombination.getDefaultState();
+                else if (!world.getFluidState(pos.offset(direction)).getFluid().matchesType(world.getFluidState(pos).getFluid()) && !fluid.matchesType(Fluids.EMPTY) && otherCombination != null)
+                    return otherCombination.getDefaultState();
+                return null;
+            });
+            return this;
+        }
+
+        public Settings vanillaCombinesWith(boolean playExtinguishSound) {
+            this.combinesWith((fluidBlock, world, pos, direction) -> {
+                BlockPos originalPos = pos.offset(direction);
+                //System.out.println(world.getFluidState(pos).getFluid());
+                if (!world.getFluidState(originalPos).getFluid().matchesType(world.getFluidState(pos).getFluid()) && (world.getFluidState(pos).isIn(FluidTags.WATER) || world.getFluidState(pos).isIn(FluidTags.LAVA))) {
+                    if (playExtinguishSound)
+                        world.syncWorldEvent(WorldEvents.LAVA_EXTINGUISHED, originalPos, 0);
+                    return (direction == Direction.DOWN ? Blocks.STONE : (world.getFluidState(originalPos).isStill() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE)).getDefaultState();
+                }
+                return null;
+            });
+            return this;
+        }
+
+        public Settings combinesWithFlowing(CombinesWithFlowingPredicate predicate) {
+            this.combinesWithFlowing = predicate;
+            return this;
+        }
+
+        public Settings combinesWithFlowingBasic(@Nullable Block lavaCombination, @Nullable Block waterCombination, @Nullable Block otherCombination) {
+            this.combinesWithFlowing((self, other, world, pos) -> {
+                if (other.matchesType(Fluids.LAVA) && lavaCombination != null)
+                    return lavaCombination.getDefaultState();
+                else if (other.matchesType(Fluids.WATER) && waterCombination != null)
+                    return waterCombination.getDefaultState();
+                else if (!self.matchesType(other) && !other.isEmpty() && otherCombination != null)
+                    return otherCombination.getDefaultState();
+                return null;
+            });
+            return this;
+        }
+
+        public Settings vanillaCombinesWithFlowing(boolean playExtinguishSound) {
+            this.combinesWithFlowing((self, other, world, pos) -> {
+                if (other.matchesType(Fluids.LAVA)) {
+                    if (playExtinguishSound)
+                        world.syncWorldEvent(WorldEvents.LAVA_EXTINGUISHED, pos, 0);
+                    return Blocks.OBSIDIAN.getDefaultState();
+                } else if (!self.matchesType(other) && !other.isEmpty()) {
+                    if (playExtinguishSound)
+                        world.syncWorldEvent(WorldEvents.LAVA_EXTINGUISHED, pos, 0);
+                    return Blocks.STONE.getDefaultState();
+                }
+                return null;
+            });
+            return this;
+        }
+
         public Identifier getSubmergedTexture() {
             return this.submergedTexture;
         }
@@ -993,6 +1104,14 @@ public class FluidBuilder {
 
         public Consumer<Entity> getEntityTick() {
             return this.entityTick;
+        }
+
+        public CombinesWithPredicate getCombinesWith() {
+            return this.combinesWith;
+        }
+
+        public CombinesWithFlowingPredicate getCombinesWithFlowing() {
+            return this.combinesWithFlowing;
         }
     }
 }

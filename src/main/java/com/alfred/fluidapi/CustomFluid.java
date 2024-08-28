@@ -1,9 +1,11 @@
 package com.alfred.fluidapi;
 
 import com.alfred.fluidapi.registry.FluidBuilder;
+import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.FluidBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.render.CameraSubmersionType;
@@ -15,6 +17,7 @@ import net.minecraft.fluid.FluidState;
 import net.minecraft.item.Item;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.BiomeTags;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
@@ -24,16 +27,16 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.BlockView;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldAccess;
-import net.minecraft.world.WorldView;
+import net.minecraft.world.*;
 import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 // what is this monstrosity
 public class CustomFluid extends FlowableFluid {
@@ -57,8 +60,10 @@ public class CustomFluid extends FlowableFluid {
     protected float splashSoundVolume, swimSoundVolume;
     protected final boolean breathable;
     protected final Consumer<Entity> entityTick;
+    protected final FluidBuilder.CombinesWithPredicate combinesWith;
+    protected final FluidBuilder.CombinesWithFlowingPredicate combinesWithFlowing;
 
-    // too many arguments aaaaaaaaa
+    // nvm the arguments have been unargumentified
     protected CustomFluid(CameraSubmersionType submersionType, FogData fog, FluidBuilder.Settings settings) {
         this.bucket = null;
         this.bottle = null;
@@ -85,6 +90,8 @@ public class CustomFluid extends FlowableFluid {
         this.swimSoundVolume = settings.getSwimSoundVolume();
         this.breathable = settings.isBreathable();
         this.entityTick = settings.getEntityTick();
+        this.combinesWith = settings.getCombinesWith();
+        this.combinesWithFlowing = settings.getCombinesWithFlowing();
         this.flowing = null;
     }
 
@@ -97,7 +104,6 @@ public class CustomFluid extends FlowableFluid {
         return this;
     }
 
-    // suspicious cast
     public FlowableFluid getFlowing() {
         return (FlowableFluid) this.flowing.getFlowing();
     }
@@ -147,7 +153,7 @@ public class CustomFluid extends FlowableFluid {
 
     @Override
     protected boolean canBeReplacedWith(FluidState state, BlockView world, BlockPos pos, Fluid fluid, Direction direction) {
-        return direction == Direction.DOWN && !fluid.isIn(this.getTag());
+        return direction == Direction.DOWN;
     }
 
     @Override
@@ -168,6 +174,23 @@ public class CustomFluid extends FlowableFluid {
     @Override
     public Optional<SoundEvent> getBucketFillSound() {
         return Optional.of(SoundEvents.ITEM_BUCKET_FILL);
+    }
+
+    @Override
+    protected void flow(WorldAccess world, BlockPos pos, BlockState state, Direction direction, FluidState fluidState) {
+        if (direction == Direction.DOWN) {
+            FluidState fluidState1 = world.getFluidState(pos);
+            BlockState state1 = this.combinesWithFlowing.test(this, fluidState1.getFluid(), world, pos);
+            System.out.println(fluidState1.getFluid());
+            if (state1 != null) {
+                if (state.getBlock() instanceof FluidBlock)
+                    world.setBlockState(pos, state1, 3);
+
+                return;
+            }
+        }
+
+        super.flow(world, pos, state, direction, fluidState);
     }
 
     public int getLevel(FluidState state) {
@@ -238,6 +261,10 @@ public class CustomFluid extends FlowableFluid {
 
     public Consumer<Entity> getEntityTick() {
         return this.entityTick;
+    }
+
+    public FluidBuilder.CombinesWithPredicate getCombinesWith() {
+        return this.combinesWith;
     }
 
     public CameraSubmersionType getSubmersionType() {
